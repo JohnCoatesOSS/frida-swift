@@ -1,0 +1,55 @@
+---
+format_version: '8'
+default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
+project_type: other
+workflows:
+  primary:
+    steps:
+    - cache-pull: {}
+    - script:
+        title: Install Frida
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            # fail if any commands fails
+            set -e
+            # debug log
+            set -x
+
+            pip install frida-tools
+    - script:
+        title: Build Library
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            # fail if any commands fails
+            set -e
+            # debug log
+            set -x
+
+            ruby ./CI/build.rb
+    - deploy-to-bitrise-io: {}
+    - cache-push:
+        title: Push Cache
+        inputs:
+        - fingerprint_method: file-mod-time
+        - compress_archive: 'true'
+        - cache_paths: |-
+            $BITRISE_CACHE_DIR
+            $BITRISE_SOURCE_DIR/CFrida/macos-x86_64
+            /usr/local/lib/python2.7/site-packages/Pygments-2.4.2.dist-info
+            /usr/local/lib/python2.7/site-packages/pygments
+            /usr/local/lib/python2.7/site-packages/_frida.so
+            /usr/local/lib/python2.7/site-packages/frida
+            /usr/local/lib/python2.7/site-packages/frida_tools
+            /usr/local/lib/python2.7/site-packages/frida-12.6.8.dist-info
+            /usr/local/lib/python2.7/site-packages/frida_tools-2.0.1.dist-info
+            /usr/local/lib/python2.7/site-packages/six-1.12.0.dist-info
+            /usr/local/lib/python2.7/site-packages/six.py
+            /usr/local/lib/python2.7/site-packages/six.pyc
+            /usr/local/lib/python2.7/site-packages/wcwidth-0.1.7.dist-info
+            /usr/local/lib/python2.7/site-packages/wcwidth
+            /usr/local/lib/python2.7/site-packages/colorama-0.4.1.dist-info
+            /usr/local/lib/python2.7/site-packages/colorama
+            /usr/local/lib/python2.7/site-packages/prompt_toolkit
+            /usr/local/lib/python2.7/site-packages/prompt_toolkit-2.0.9.dist-info

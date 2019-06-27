@@ -256,14 +256,31 @@ public class Script: NSObject, NSCopying {
     @dynamicMemberLookup
     public struct Exports {
         unowned let script: Script
+        let sync: ExportsSync
+
+        init(script: Script) {
+            self.script = script
+            self.sync = ExportsSync(script: script)
+        }
+
+        subscript(dynamicMember functionName: String) -> RpcFunction {
+            get {
+                return RpcFunction(script: script, functionName: functionName)
+            }
+        }
+    }
+
+    @dynamicMemberLookup
+    public struct ExportsSync {
+        unowned let script: Script
 
         init(script: Script) {
             self.script = script
         }
 
-        subscript(dynamicMember functionName: String) -> RpcFunction {
+        subscript<T>(dynamicMember functionName: String) -> RpcFunctionSync<T> {
             get {
-                return RpcFunction(script: self.script, functionName: functionName)
+                return RpcFunctionSync(script: script, functionName: functionName)
             }
         }
     }
@@ -301,6 +318,29 @@ public class Script: NSObject, NSCopying {
             }
         }
         return request
+    }
+
+    internal func rpcPostSync(functionName: String, requestId: Int, values: [Any]) throws -> Any? {
+        var resultMaybe: RpcResult<Any?>?
+
+        let semaphore = NonRunLoopBlockingSemaphore()
+        rpcPost(functionName: functionName, requestId: requestId, values: values).onResult(as: Any?.self) { result in
+            resultMaybe = result
+            semaphore.signal()
+        }
+
+        semaphore.wait()
+
+        guard let result = resultMaybe else {
+            throw Error.rpcError(message: "RPC call to \(functionName) timed out.", stackTrace: nil)
+        }
+
+        switch result {
+        case let .success(value):
+            return value
+        case let .error(error):
+            throw error
+        }
     }
 
     // MARK: - Private Types
