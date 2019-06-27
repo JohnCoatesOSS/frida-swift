@@ -1,3 +1,28 @@
 /CFrida/**/*.[ach]
-/Frida.xcodeproj/project.xcworkspace/xcuserdata
-/Frida.xcodeproj/xcuserdata
+
+## Xcode - Build Generated
+build/
+DerivedData/
+derived/
+
+## macOS
+.DS_Store
+*.xccheckout
+
+## Xcode settings
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata/
+
+## Xcode File State
+*.moved-aside
+*.xcuserstate
+
+# Continuous Integration
+cachedTimestamp

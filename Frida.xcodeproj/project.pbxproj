@@ -33,6 +33,7 @@
 		FA517E9622C4129A009A9A0E /* RpcFunction.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA517E9522C4129A009A9A0E /* RpcFunction.swift */; };
 		FA517E9E22C41380009A9A0E /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = FA517E9D22C41380009A9A0E /* main.m */; };
 		FA517EA322C4139F009A9A0E /* MacOsTargetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA517EA222C4139F009A9A0E /* MacOsTargetTests.swift */; };
+		FAD86BC122C555CE00B93777 /* NonRunLoopBlockingSemaphore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAD86BC022C555CE00B93777 /* NonRunLoopBlockingSemaphore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -96,6 +97,7 @@
 		FA517E9B22C41380009A9A0E /* TestTarget */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = TestTarget; sourceTree = BUILT_PRODUCTS_DIR; };
 		FA517E9D22C41380009A9A0E /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		FA517EA222C4139F009A9A0E /* MacOsTargetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacOsTargetTests.swift; sourceTree = "<group>"; };
+		FAD86BC022C555CE00B93777 /* NonRunLoopBlockingSemaphore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonRunLoopBlockingSemaphore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -180,6 +182,7 @@
 				0CA4A1351CADFEE4006A32C4 /* SignalConnection.swift */,
 				FA517E9322C41250009A9A0E /* RpcRequest.swift */,
 				FA517E9522C4129A009A9A0E /* RpcFunction.swift */,
+				FAD86BC022C555CE00B93777 /* NonRunLoopBlockingSemaphore.swift */,
 			);
 			path = Frida;
 			sourceTree = "<group>";
@@ -354,6 +357,7 @@
 				0C3DE4EA1CB1B4570091AC08 /* SpawnDetails.swift in Sources */,
 				0CA4A1321CADF2B1006A32C4 /* Script.swift in Sources */,
 				0CA4A1301CADF094006A32C4 /* Session.swift in Sources */,
+				FAD86BC122C555CE00B93777 /* NonRunLoopBlockingSemaphore.swift in Sources */,
 				0CA4A1361CADFEE4006A32C4 /* SignalConnection.swift in Sources */,
 				0C3DE4EE1CB1D3C70091AC08 /* SessionDelegate.swift in Sources */,
 			);

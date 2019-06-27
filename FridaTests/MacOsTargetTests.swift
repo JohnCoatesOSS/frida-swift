@@ -1,109 +1,19 @@
+//
+//  MacOsTargetTests.swift
+//  Created on 6/24/19
+//
+
 import XCTest
 @testable import Frida
 
 class MacOsTargetTests: XCTestCase {
+
     lazy var manager = DeviceManager()
     var localDevice: Device!
     var pid: UInt!
     var session: Session!
     var script: Script!
-    fileprivate lazy var scriptDelegate: TestScriptDelegate = TestScriptDelegate()
-
-    override func tearDown() {
-        manager.close()
-        session.detach()
-    }
-
-    func testReceiveMessage() {
-        spawnSessionWith(script: #"console.log("done")"#)
-        let messageExpectation = expectation(description: "Received message")
-
-        scriptDelegate.onMessage = { message in
-            if case let.regular(_, payload) = message, payload == "done" {
-                messageExpectation.fulfill()
-            }
-        }
-
-        script.load()
-        localDevice.resume(pid)
-        waitForExpectations(timeout: 2.0, handler: nil)
-    }
-
-    func testRpcCall() {
-        let scriptContents = """
-        rpc.exports = {
-            add: function (a, b) {
-                return a + b;
-            }
-        };
-        """
-        spawnSessionWith(script: scriptContents)
-        script.load()
-
-        let resultExpectation = expectation(description: "Received RPC result.")
-        let add = script.exports.add
-
-        add(5, 3).onResult(as: Int.self) { result in
-            switch result {
-            case let .success(value):
-                XCTAssertEqual(value, 5 + 3, "RPC Function called successfully.")
-            case let .error(error):
-                XCTFail(error.localizedDescription)
-            }
-            resultExpectation.fulfill()
-        }
-
-        let missing = script.exports.missing
-        let missingExpectation = expectation(description: "Received missing RPC result.")
-
-        missing(0).onResult(as: Int.self) { result in
-            switch result {
-            case .success:
-                XCTFail("RPC call unexpectedly succeeded.")
-            case .error:
-                break
-            }
-            missingExpectation.fulfill()
-        }
-
-        waitForExpectations(timeout: 2.0, handler: nil)
-    }
-
-    func testRpcError() {
-        let scriptContents = """
-        rpc.exports = {
-            throwException: function () {
-                undefinedFunction();
-            }
-        };
-        """
-
-        spawnSessionWith(script: scriptContents)
-        script.load()
-
-        let resultExpectation = expectation(description: "Received RPC result.")
-        let throwException = script.exports.throwException
-
-        throwException().onResult(as: Int.self) { result in
-            switch result {
-            case .success:
-                XCTFail("RPC call unexpectedly succeeded.")
-            case let .error(untypedError):
-                guard case let Frida.Error.rpcError(_, stackTrace) = untypedError else {
-                    XCTFail("Didn't receive expected RPC error.")
-                    break
-                }
-
-                XCTAssertNotNil(stackTrace)
-            }
-
-            resultExpectation.fulfill()
-        }
-
-        waitForExpectations(timeout: 2.0, handler: nil)
-    }
-
-    // MARK: - Helper functions
+    lazy var scriptDelegate: FridaScriptDelegate = FridaScriptDelegate()
 
     private func getProductsConfigurationDirectory() -> URL {
         let bundlePath = Bundle(for: MacOsTargetTests.self).bundlePath
@@ -126,73 +36,137 @@ class MacOsTargetTests: XCTestCase {
         return url
     }
 
-    private func spawnSessionWith(script scriptContents: String) {
-        let localDeviceExpectation = expectation(description: "Found local device.")
+    override func setUp() {
+    }
+
+    private func spawnWith(script scriptContents: String) {
         var localDeviceMaybe: Device?
-        manager.enumerateDevices { result in
-            let devices = try! result()
-            let localDevice = devices.filter { $0.kind == Device.Kind.local }.first!
-            localDeviceMaybe = localDevice
-            localDeviceExpectation.fulfill()
-        }
-
-        waitForExpectations(timeout: 2, handler: nil)
-        XCTAssertNotNil(localDeviceMaybe)
-        guard localDeviceMaybe != nil else { return }
-        localDevice = localDeviceMaybe
-
-        let binary = getProductsConfigurationDirectory().appendingPathComponent("TestTarget")
-        let spawnExpectation = expectation(description: "Spawned binary.")
-        var pidMaybe: UInt?
-        localDevice.spawn(binary.path) { result in
-            do {
-                pidMaybe = try result()
-            } catch let error {
-                print("Couldn't launch, error: \(error)")
+        blocking { semaphore in
+            self.manager.enumerateDevices { result in
+                let devices = try! result()
+                let localDevice = devices.filter { $0.kind == Device.Kind.local }.first!
+                localDeviceMaybe = localDevice
+                semaphore.signal()
             }
-
-            spawnExpectation.fulfill()
         }
 
-        waitForExpectations(timeout: 2, handler: nil)
+        XCTAssertNotNil(localDeviceMaybe)
+        self.localDevice = localDeviceMaybe
+        let binary = getProductsConfigurationDirectory().appendingPathComponent("TestTarget")
+
+        var pidMaybe: UInt?
+        blocking { semaphore in
+            self.localDevice.spawn(binary.path) { result in
+                do {
+                    pidMaybe = try result()
+                } catch let error {
+                    print("Couldn't launch, error: \(error)")
+                }
+
+                semaphore.signal()
+            }
+        }
+
         XCTAssertNotNil(pidMaybe)
-        guard pidMaybe != nil else { return }
         pid = pidMaybe
 
-        let attachExpectation = expectation(description: "Attached to binary.")
         var sessionMaybe: Session?
-        localDevice.attach(pid) { (result) in
-            sessionMaybe = try? result()
-            attachExpectation.fulfill()
-        }
 
-        waitForExpectations(timeout: 2, handler: nil)
+        blocking { semaphore in
+            self.localDevice.attach(self.pid) { (result) in
+                sessionMaybe = try? result()
+                semaphore.signal()
+            }
+        }
         XCTAssertNotNil(sessionMaybe)
-        guard sessionMaybe != nil else { return }
         session = sessionMaybe
 
-        let createScriptExpectation = expectation(description: "Created script.")
         var scriptMaybe: Script?
-        session.createScript(scriptContents) { (result) in
-            scriptMaybe = try! result()
-            createScriptExpectation.fulfill()
+
+        blocking { semaphore in
+            self.session.createScript(scriptContents) { (result) in
+                scriptMaybe = try! result()
+                semaphore.signal()
+            }
         }
 
-        waitForExpectations(timeout: 2, handler: nil)
         XCTAssertNotNil(scriptMaybe)
-        guard scriptMaybe != nil else { return }
         script = scriptMaybe
         script.delegate = scriptDelegate
     }
+
+    override func tearDown() {
+        manager.close()
+    }
+
+    func testReceiveMessage() {
+        spawnWith(script: #"console.log("done")"#)
+        let expectation = self.expectation(description: "Received message")
+
+        scriptDelegate.onMessage = { message in
+            if case let.regular(_, payload) = message, payload == "done" {
+                print("message: \(payload)")
+                expectation.fulfill()
+            }
+        }
+
+        script.load()
+        localDevice.resume(pid)
+
+        self.waitForExpectations(timeout: 2.0, handler: nil)
+    }
+
+    func testRpcCall() throws {
+        let scriptContents = """
+        rpc.exports = {
+            add: function (a, b) {
+                return a + b;
+            }
+        };
+        """
+        spawnWith(script: scriptContents)
+
+        script.load()
+
+        let expectation = self.expectation(description: "Received RPC result.")
+
+        let add = script.exports.add
+
+        add(5, 3).onResult(as: Int.self) { result in
+            switch result {
+            case let .success(value):
+                XCTAssertEqual(value, 5 + 3, "RPC Function called successfully.")
+            case let .error(error):
+                XCTFail(error.localizedDescription)
+            }
+            expectation.fulfill()
+        }
+
+
+        let addSync: RpcFunctionSync<Int> = script.exports.sync.add
+        try XCTAssertEqual(addSync(5, 3), 5 + 3)
+
+        self.waitForExpectations(timeout: 2.0, handler: nil)
+
+        session.detach()
+    }
+
 }
 
-fileprivate enum TestScriptMessage {
+fileprivate func blocking(closure: @escaping (_ semaphore: NonRunLoopBlockingSemaphore) -> Void) {
+    let semaphore = NonRunLoopBlockingSemaphore()
+    closure(semaphore)
+
+    semaphore.wait()
+}
+
+enum FridaScriptMessage {
     case regular(type: String, payload: String)
     case other(message: Any, data: Data?)
 }
 
-fileprivate class TestScriptDelegate: NSObject, ScriptDelegate {
-    var onMessage: ((TestScriptMessage) -> Void)?
+class FridaScriptDelegate: NSObject, ScriptDelegate {
+    var onMessage: ((FridaScriptMessage) -> Void)?
 
     @objc func script(_ script: Script, didReceiveMessage message: Any, withData data: Data?) {
         guard let dict = message as? [String: String] else {
@@ -200,10 +174,10 @@ fileprivate class TestScriptDelegate: NSObject, ScriptDelegate {
             return
         }
 
-        let type = dict["type"]!
+        let typeMaybe = dict["type"]
         let payloadMaybe = dict["payload"]
 
-        guard let payload = payloadMaybe else {
+        guard let type = typeMaybe, let payload = payloadMaybe else {
             print("Couldn't get type and payload")
             return
         }

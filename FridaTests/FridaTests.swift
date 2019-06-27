@@ -27,7 +27,26 @@ class FridaTests: XCTestCase {
         XCTAssert(devices.count > 0)
     }
 
-    func testGetFrontmostApplication() {
+    func testEnumerateProcesses() {
+        let expectation = self.expectation(description: "Got list of processes")
+
+        let manager = DeviceManager()
+        var processes = [ProcessDetails]()
+        manager.enumerateDevices { result in
+            let devices = try! result()
+            let localDevice = devices.filter { $0.kind == Device.Kind.local }.first!
+            localDevice.enumerateProcesses() { result in
+                processes = try! result()
+                expectation.fulfill()
+            }
+        }
+
+        self.waitForExpectations(timeout: 5.0, handler: nil)
+        // print("Got processes: \(processes)")
+        XCTAssert(processes.count > 0)
+    }
+
+    func xxxGetFrontmostApplication() {
         let expectation = self.expectation(description: "Got frontmost application")
 
         let manager = DeviceManager()
@@ -56,20 +75,20 @@ class FridaTests: XCTestCase {
         }
     }
 
-    func testEnumerateApplications() {
+    func xxxEnumerateApplications() {
         let expectation = self.expectation(description: "Got list of applications")
 
         let manager = DeviceManager()
         var applications = [ApplicationDetails]()
         manager.enumerateDevices { result in
             let devices = try! result()
-            
+
             guard let usbDevice = devices.filter({ $0.kind == Device.Kind.usb }).first else {
                 print("No USB devices for test \(#function).")
                 expectation.fulfill()
                 return
             }
-            
+
             usbDevice.enumerateApplications() { result in
                 do {
                     applications = try result()
@@ -83,25 +102,6 @@ class FridaTests: XCTestCase {
         self.waitForExpectations(timeout: 5.0, handler: nil)
         // print("Got applications: \(applications)")
         XCTAssert(applications.count > 0)
-    }
-
-    func testEnumerateProcesses() {
-        let expectation = self.expectation(description: "Got list of processes")
-
-        let manager = DeviceManager()
-        var processes = [ProcessDetails]()
-        manager.enumerateDevices { result in
-            let devices = try! result()
-            let localDevice = devices.filter { $0.kind == Device.Kind.local }.first!
-            localDevice.enumerateProcesses() { result in
-                processes = try! result()
-                expectation.fulfill()
-            }
-        }
-
-        self.waitForExpectations(timeout: 5.0, handler: nil)
-        // print("Got processes: \(processes)")
-        XCTAssert(processes.count > 0)
     }
 
     func xxxtestDetached() {
