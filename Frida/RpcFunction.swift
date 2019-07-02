@@ -33,8 +33,17 @@ public struct RpcFunctionSync<Result> {
         self.script = script
         self.functionName = functionName
     }
+}
 
-    public func dynamicallyCall(withArguments args: [Any]) throws -> Result {
+public extension RpcFunctionSync where Result == Void {
+    func dynamicallyCall(withArguments args: [Any]) throws {
+        let _ = try script.rpcPostSync(functionName: functionName,
+                                       requestId: script.nextRequestId, values: args)
+    }
+}
+
+public extension RpcFunctionSync {
+    func dynamicallyCall(withArguments args: [Any]) throws -> Result {
         let untypedValue = try script.rpcPostSync(functionName: functionName,
                                                   requestId: script.nextRequestId, values: args)
 
