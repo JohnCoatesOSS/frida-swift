@@ -263,7 +263,7 @@ public class Script: NSObject, NSCopying {
             self.sync = ExportsSync(script: script)
         }
 
-        subscript(dynamicMember functionName: String) -> RpcFunction {
+        public subscript(dynamicMember functionName: String) -> RpcFunction {
             get {
                 return RpcFunction(script: script, functionName: functionName)
             }
@@ -278,7 +278,7 @@ public class Script: NSObject, NSCopying {
             self.script = script
         }
 
-        subscript<T>(dynamicMember functionName: String) -> RpcFunctionSync<T> {
+        public subscript<T>(dynamicMember functionName: String) -> RpcFunctionSync<T> {
             get {
                 return RpcFunctionSync(script: script, functionName: functionName)
             }
