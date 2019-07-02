@@ -4,7 +4,7 @@ class Runtime {
     typealias Handler = @convention(block) () -> Void
 
     static func scheduleOnMainThread(_ handler: @escaping Handler) {
-        DispatchQueue.main.async(execute: handler)
+        DispatchQueue.global(qos: .default).async(execute: handler)
     }
 
     static func scheduleOnFridaThread(_ handler: @escaping Handler) {
