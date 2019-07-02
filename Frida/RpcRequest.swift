@@ -38,6 +38,25 @@ public class RpcRequest {
             promises.append(promise)
         }
     }
+
+    public func onResult(as: Void.Type,
+                            callback: @escaping (RpcResult<Void>) -> Void) {
+
+        let promise = { (result: RpcInternalResult) in
+            switch result {
+            case .success:
+                callback(.success(()))
+            case let .error(error):
+                callback(.error(error))
+            }
+        }
+
+        if let result = result {
+            promise(result)
+        } else {
+            promises.append(promise)
+        }
+    }
 }
 
 public enum RpcResult<T> {
