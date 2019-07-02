@@ -1,6 +1,7 @@
 import Foundation
 
 @dynamicCallable
+@dynamicMemberLookup
 public struct RpcFunction {
     unowned let script: Script
     let functionName: String
@@ -8,11 +9,18 @@ public struct RpcFunction {
     init(script: Script, functionName: String) {
         self.script = script
         self.functionName = functionName
+        print("functionName: \(functionName)")
     }
 
-    func dynamicallyCall(withArguments args: [Any]) -> RpcRequest {
+    public func dynamicallyCall(withArguments args: [Any]) -> RpcRequest {
         return script.rpcPost(functionName: functionName,
                               requestId: script.nextRequestId, values: args)
+    }
+
+    public subscript(dynamicMember functionName: String) -> RpcFunction {
+        get {
+            return RpcFunction(script: script, functionName: "\(self.functionName).\(functionName)")
+        }
     }
 }
 
@@ -26,7 +34,7 @@ public struct RpcFunctionSync<Result> {
         self.functionName = functionName
     }
 
-    func dynamicallyCall(withArguments args: [Any]) throws -> Result {
+    public func dynamicallyCall(withArguments args: [Any]) throws -> Result {
         let untypedValue = try script.rpcPostSync(functionName: functionName,
                                                   requestId: script.nextRequestId, values: args)
 
