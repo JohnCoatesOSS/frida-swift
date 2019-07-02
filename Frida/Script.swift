@@ -256,7 +256,7 @@ public class Script: NSObject, NSCopying {
     @dynamicMemberLookup
     public struct Exports {
         unowned let script: Script
-        let sync: ExportsSync
+        public let sync: ExportsSync
 
         init(script: Script) {
             self.script = script
