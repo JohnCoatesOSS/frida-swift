@@ -151,6 +151,43 @@ class MacOsTargetTests: XCTestCase {
         session.detach()
     }
 
+    func testNestedRpcFunction() throws {
+        let scriptContents = """
+        rpc.exports = {
+            container: {
+                add: function (a, b) {
+                    return a + b;
+                }
+            }
+        };
+        """
+        spawnWith(script: scriptContents)
+
+        script.load()
+
+        let expectation = self.expectation(description: "Received RPC result.")
+
+        let add = script.exports.container.add
+
+        add(5, 3).onResult(as: Int.self) { result in
+            switch result {
+            case let .success(value):
+                XCTAssertEqual(value, 5 + 3, "Nested RPC Function called successfully.")
+            case let .error(error):
+                XCTFail(error.localizedDescription)
+            }
+            expectation.fulfill()
+        }
+
+
+        let addSync: RpcFunctionSync<Int> = script.exports.sync.add
+        try XCTAssertEqual(addSync(5, 3), 5 + 3)
+
+        self.waitForExpectations(timeout: 2.0, handler: nil)
+
+        session.detach()
+    }
+
 }
 
 fileprivate func blocking(closure: @escaping (_ semaphore: NonRunLoopBlockingSemaphore) -> Void) {
